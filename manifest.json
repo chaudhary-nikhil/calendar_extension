@@ -1,0 +1,38 @@
+{
+    "name": "Calendar Quick Add",
+    "version": "2.0.0",
+    "description": "Select text and add events to Google Calendar",
+    "manifest_version": 3,
+    "author": "Sampurna Chapagain",
+    "permissions": [
+        "identity",
+        "contextMenus",
+        "storage",
+        "activeTab",
+        "notifications"
+    ],
+    "host_permissions": [
+        "https://www.googleapis.com/*",
+        "https://accounts.google.com/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": ["<all_urls>"],
+            "js": ["content.js"]
+        }
+    ],
+    "action": {
+        "default_popup": "popup.html",
+        "default_title": "Calendar Quick Add"
+    },
+    "oauth2": {
+        "client_id": "843490739243-vmusk1dvfv21eluen4vkgi6plf65ghln.apps.googleusercontent.com",
+        "scopes": [
+            "https://www.googleapis.com/auth/calendar"
+        ]
+    }
+}
+

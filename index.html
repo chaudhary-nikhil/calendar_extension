@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Covid-19 Stats- UK</title>
+    <meta charset="utf-8">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- ---- -->
+    <p>Google Calendar API Quickstart</p>
+
+    <!--Add buttons to initiate auth sequence and sign out-->
+    <button id="authorize_button" onclick="handleAuthClick()">Authorize</button>
+    <button id="signout_button" onclick="handleSignoutClick()">Sign Out</button>
+
+    <pre id="content" style="white-space: pre-wrap;"></pre>
+    <script src="./index.js" type="text/javascript"></script>
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+    <!-- ---- -->
+
+    <div class="container mt-3" style="width: 450px;">
+        <h2 class="text-center">Covid Latest Report-UK</h2>
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                <th>Date</th>
+                <th>Country</th>
+                <th>Confirmed</th>
+                <th>Deaths</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td id="date"></td>
+                <td id="areaName"></td>
+                <td id="latestBy"></td>
+                <td id="deathNew"></td>
+            </tr>
+            </tbody>
+        </table>
+        <label for="fname">First name:</label>
+        <input type="text" id="fname" name="fname">
+        <input type="submit" name="Submit">
+    </div>
+</body>
+
+</html>

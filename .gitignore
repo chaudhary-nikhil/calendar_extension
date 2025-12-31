@@ -1,0 +1,3 @@
+# Don't commit sensitive OAuth credentials if you plan to share this code
+# (The client ID in manifest.json should be replaced with your own)
+
