@@ -4,155 +4,160 @@
     <meta charset="utf-8">
     <title>Calendar Quick Add</title>
     <style>
+        html, body {
+            background: #f4f1ea;
+        }
         body {
-            width: 400px;
-            padding: 20px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            box-sizing: border-box;
+            width: 380px;
+            margin: 0;
+            padding: 36px 32px 28px;
+            background: #f4f1ea;
+            color: #1a1a1a;
+            font-family: Georgia, "Iowan Old Style", Palatino, "Palatino Linotype", serif;
+            font-size: 16px;
+            line-height: 1.4;
         }
         h1 {
-            font-size: 20px;
-            margin: 0 0 20px 0;
-            color: #202124;
+            font-size: 22px;
+            font-weight: 400;
+            margin: 0 0 28px;
+            letter-spacing: -0.01em;
         }
         .event-form {
-            margin-bottom: 20px;
+            margin: 0;
         }
         label {
             display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #5f6368;
-            font-size: 14px;
+            margin: 0 0 4px;
+            font-weight: 400;
+            font-size: 15px;
         }
         input, textarea {
             width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #dadce0;
-            border-radius: 4px;
-            font-size: 14px;
+            margin: 0 0 18px;
+            padding: 6px 0 8px;
+            border: none;
+            border-bottom: 1px solid #1a1a1a;
+            border-radius: 0;
+            background: transparent;
+            color: #1a1a1a;
+            font-family: inherit;
+            font-size: 16px;
             box-sizing: border-box;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-bottom-width: 1.5px;
+        }
+        input::placeholder {
+            color: #8a8478;
         }
         textarea {
             resize: vertical;
-            min-height: 80px;
-        }
-        .datetime-group {
-            display: flex;
-            gap: 10px;
-        }
-        .datetime-group input {
-            flex: 1;
+            min-height: 72px;
         }
         button {
             width: 100%;
-            padding: 12px;
-            background-color: #1a73e8;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 14px;
-            font-weight: 500;
+            margin: 8px 0 0;
+            padding: 10px 12px;
+            border: 1px solid #1a1a1a;
+            border-radius: 0;
+            background: #1a1a1a;
+            color: #f4f1ea;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: 400;
             cursor: pointer;
-            margin-bottom: 10px;
         }
         button:hover {
-            background-color: #1557b0;
+            background: #000;
         }
         button:disabled {
-            background-color: #dadce0;
+            background: #d9d3c7;
+            border-color: #d9d3c7;
+            color: #8a8478;
             cursor: not-allowed;
         }
+        #signOutBtn {
+            width: auto;
+            margin: 14px 0 0;
+            padding: 0;
+            border: none;
+            background: transparent;
+            color: #1a1a1a;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+        #signOutBtn:hover {
+            background: transparent;
+            color: #000;
+        }
         .status {
-            padding: 10px;
-            border-radius: 4px;
-            margin-top: 10px;
-            font-size: 14px;
+            margin-top: 16px;
+            font-size: 15px;
             display: none;
         }
         .status.success {
-            background-color: #e6f4ea;
-            color: #137333;
             display: block;
+            color: #1a1a1a;
         }
         .status.error {
-            background-color: #fce8e6;
-            color: #c5221f;
             display: block;
+            color: #8a3b32;
         }
         .info {
-            font-size: 12px;
-            color: #5f6368;
-            margin-top: 10px;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 4px;
+            margin: 22px 0 0;
+            font-size: 14px;
+            line-height: 1.45;
+            color: #1a1a1a;
         }
         .drop-zone {
-            border: 2px dashed #dadce0;
-            border-radius: 8px;
-            padding: 30px 20px;
-            text-align: center;
-            background-color: #f8f9fa;
-            margin-bottom: 20px;
+            margin: 0 0 22px;
+            padding: 0 0 14px;
+            border: none;
+            border-bottom: 1px solid #1a1a1a;
+            background: transparent;
             cursor: pointer;
-            transition: all 0.2s;
         }
-        .drop-zone:hover {
-            border-color: #1a73e8;
-            background-color: #e8f0fe;
-        }
-        .drop-zone.drag-over {
-            border-color: #1a73e8;
-            background-color: #e8f0fe;
-            border-style: solid;
+        .drop-zone.drag-over .drop-zone-text {
+            text-decoration: underline;
+            text-underline-offset: 3px;
         }
         .drop-zone-text {
-            color: #5f6368;
-            font-size: 14px;
             margin: 0;
-        }
-        .drop-zone-icon {
-            font-size: 32px;
-            margin-bottom: 10px;
+            color: #1a1a1a;
+            font-size: 16px;
         }
         .divider {
-            height: 1px;
-            background-color: #dadce0;
-            margin: 20px 0;
+            display: none;
         }
     </style>
 </head>
 <body>
-    <h1>Add to Google Calendar</h1>
-    
-    <!-- Drag and Drop Zone for .ics/.ical files -->
+    <h1>Add to calendar</h1>
+
     <div class="drop-zone" id="dropZone">
-        <div class="drop-zone-icon">📅</div>
-        <p class="drop-zone-text">Drag & drop .ics/.ical file here<br><small>or click to browse</small></p>
+        <p class="drop-zone-text">Drop an .ics file, or click to browse</p>
         <input type="file" id="icsFileInput" accept=".ics,.ical" style="display: none;">
     </div>
-    
-    <div class="divider"></div>
-    
+
     <div class="event-form">
-        <label for="eventTitle">Event Title:</label>
-        <input type="text" id="eventTitle" placeholder="Enter event title">
-        
-        <label for="eventDate">Date:</label>
+        <label for="eventTitle">Title</label>
+        <input type="text" id="eventTitle" placeholder="Event name">
+
+        <label for="eventDate">Date</label>
         <input type="date" id="eventDate">
-        
-        <label for="eventTime">Time:</label>
+
+        <label for="eventTime">Time</label>
         <input type="time" id="eventTime">
-        
-        <button id="addEventBtn">Add to Calendar</button>
-        <button id="signOutBtn">Sign Out</button>
-        
+
+        <button id="addEventBtn">Add to calendar</button>
+        <button id="signOutBtn">Sign out</button>
+
         <div id="status" class="status"></div>
-        
-        <div class="info">
-            <strong>Tip:</strong> Select text on any webpage and right-click, then choose "Add to Google Calendar" to automatically parse dates and times from the selected text.
-        </div>
+
+        <p class="info">Select text on a page, right-click, and choose Add to Google Calendar.</p>
     </div>
     
     <script src="icsParser.js"></script>

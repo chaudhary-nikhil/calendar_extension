@@ -3,13 +3,13 @@
     let selectedText = '';
     let pointer = { x: 24, y: 24 };
 
-    document.addEventListener('mousemove', function(event) {
+    function rememberPointer(event) {
         pointer = { x: event.clientX, y: event.clientY };
-    }, true);
+        globalThis.__calendarPointer = pointer;
+    }
 
-    document.addEventListener('contextmenu', function(event) {
-        pointer = { x: event.clientX, y: event.clientY };
-    }, true);
+    document.addEventListener('mousemove', rememberPointer, true);
+    document.addEventListener('contextmenu', rememberPointer, true);
 
     // Listen for text selection
     document.addEventListener('mouseup', function() {
@@ -59,14 +59,14 @@
         const shadow = host.attachShadow({ mode: 'open' });
         shadow.innerHTML = ''
             + '<style>'
-            + '.box{width:22px;height:22px;border-radius:5px;background:#1f8a3b;box-shadow:0 2px 8px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;animation:pop .16s ease-out,fade 1.35s ease forwards;}'
+            + '.box{width:20px;height:20px;box-sizing:border-box;border-radius:2px;background:#f4f1ea;border:1px solid #1a1a1a;display:flex;align-items:center;justify-content:center;animation:pop .16s ease-out,fade 1.35s ease forwards;}'
             + 'svg{display:block;}'
             + '@keyframes pop{from{transform:scale(.55);opacity:0}to{transform:scale(1);opacity:1}}'
             + '@keyframes fade{0%,68%{opacity:1}100%{opacity:0}}'
             + '</style>'
             + '<div class="box" role="img" aria-label="Added to Google Calendar">'
             + '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">'
-            + '<path d="M2.5 7.2 L5.6 10.2 L11.5 3.8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+            + '<path d="M2.5 7.2 L5.6 10.2 L11.5 3.8" stroke="#1a1a1a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>'
             + '</svg></div>';
 
         (document.documentElement || document.body).appendChild(host);

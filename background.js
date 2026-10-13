@@ -1,77 +1,178 @@
+import { parseEventWithEngine, resolveRelativeDate } from './eventEngine.js';
+
 // Background service worker for Chrome extension
 const CLIENT_ID = '1066746635630-c911ajthbvktpij42c1ej0rimcp6nar0.apps.googleusercontent.com';
 const API_KEY = 'AIzaSyCXTAZqHk6RYJH6jquN1-dHmJZJysig27U';
 
 // Create context menu on installation
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.contextMenus.create({
-        id: 'addToCalendar',
-        title: 'Add to Google Calendar',
-        contexts: ['selection']
+    chrome.contextMenus.removeAll(() => {
+        chrome.contextMenus.create({
+            id: 'addToCalendar',
+            title: 'Add to Google Calendar',
+            contexts: ['selection']
+        });
     });
 });
 
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-    if (info.menuItemId === 'addToCalendar') {
-        const selectedText = info.selectionText;
-        
-        // Parse the selected text for date/time and title
-        const parsed = parseEventText(selectedText);
-        
-        // Store parsed data for popup (in case user wants to edit)
+    if (info.menuItemId !== 'addToCalendar') return;
+    const selectedText = info.selectionText;
+
+    try {
+        const parsed = promoteDateOnly(await parseEventWithEngine(selectedText, {
+            fallback: parseEventText
+        })) || {};
+
         chrome.storage.local.set({
             eventData: {
                 text: selectedText,
                 title: parsed.title,
                 date: parsed.date,
                 time: parsed.time,
+                allDay: !!parsed.allDay,
                 fullDateTime: parsed.fullDateTime ? parsed.fullDateTime.toISOString() : null,
                 endDateTime: parsed.endDateTime ? parsed.endDateTime.toISOString() : null
             }
         });
-        
-        // Try to create event directly
-        try {
-            const token = await getAccessToken();
-            const eventData = {
-                title: parsed.title,
-                fullDateTime: parsed.fullDateTime || new Date(),
-                endDateTime: parsed.endDateTime || null
-            };
-            const event = await createCalendarEvent(eventData, token);
-            
-            // Show notification
-            const notificationOptions = {
-                type: 'basic',
-                title: 'Event Added',
-                message: `"${parsed.title}" added to Google Calendar`
-            };
-            chrome.notifications.create(notificationOptions, (id) => {
-                if (chrome.runtime.lastError) {
-                    // Notification failed, but event was created
-                    console.log('Notification failed:', chrome.runtime.lastError);
-                }
-            });
-        } catch (error) {
-            // If direct creation fails (e.g., user cancelled auth), 
-            // stored data will be available in popup
-            console.error('Failed to create event:', error);
-            
-            // Show notification to open popup
-            const notificationOptions = {
-                type: 'basic',
-                title: 'Calendar Quick Add',
-                message: 'Click the extension icon to add event to calendar'
-            };
-            chrome.notifications.create(notificationOptions, (id) => {
-                if (chrome.runtime.lastError) {
-                    console.log('Notification failed:', chrome.runtime.lastError);
-                }
-            });
+
+        if (!parsed.fullDateTime) {
+            showCursorNotice(tab, info, false, 'No date found');
+            notify('Calendar Quick Add', 'No date or time found. Click the extension icon to finish the event.');
+            return;
         }
+
+        const token = await getAccessToken();
+        await createCalendarEvent({
+            title: parsed.title,
+            fullDateTime: parsed.fullDateTime,
+            endDateTime: parsed.endDateTime || null,
+            allDay: !!parsed.allDay
+        }, token);
+        showCursorNotice(tab, info, true, 'Added');
+        notify('Event Added', `"${parsed.title}" added to Google Calendar`);
+    } catch (error) {
+        console.error('Failed to create event:', error);
+        showCursorNotice(tab, info, false, 'Not added');
+        notify('Calendar Quick Add', 'Click the extension icon to add event to calendar');
     }
 });
+
+function notify(title, message) {
+    chrome.notifications.create({
+        type: 'basic',
+        title,
+        message
+    }, () => {
+        void chrome.runtime.lastError;
+    });
+}
+
+function showCursorNotice(tab, info, ok, text) {
+    if (!tab || tab.id == null) return;
+    const target = { tabId: tab.id };
+    if (Number.isInteger(info && info.frameId)) target.frameIds = [info.frameId];
+    chrome.scripting.executeScript({
+        target,
+        func: paintCalendarNotice,
+        args: [{ ok: !!ok, text }]
+    }, () => {
+        void chrome.runtime.lastError;
+    });
+}
+
+function paintCalendarNotice(notice) {
+    const previous = document.getElementById('calendar-quick-add-check');
+    if (previous) previous.remove();
+
+    const pointer = globalThis.__calendarPointer;
+    let x = 28;
+    let y = 28;
+    if (pointer && Number.isFinite(pointer.x) && Number.isFinite(pointer.y)) {
+        x = pointer.x;
+        y = pointer.y;
+    } else {
+        const selection = window.getSelection && window.getSelection();
+        if (selection && selection.rangeCount) {
+            const rect = selection.getRangeAt(0).getBoundingClientRect();
+            if (rect && (rect.width || rect.height)) {
+                x = rect.right;
+                y = rect.top;
+            }
+        }
+    }
+
+    if (!document.getElementById('calendar-quick-add-style')) {
+        const style = document.createElement('style');
+        style.id = 'calendar-quick-add-style';
+        style.textContent = '@keyframes calendarQuickAddIn{from{transform:translateY(4px);opacity:0}to{transform:translateY(0);opacity:1}}';
+        document.documentElement.appendChild(style);
+    }
+
+    const host = document.createElement('div');
+    host.id = 'calendar-quick-add-check';
+    host.setAttribute('role', 'status');
+    host.style.cssText = [
+        'all:initial',
+        'position:fixed',
+        'z-index:2147483647',
+        'pointer-events:none',
+        'display:flex',
+        'align-items:center',
+        'gap:8px',
+        'padding:7px 12px 7px 8px',
+        'background:#f4f1ea',
+        'color:#1a1a1a',
+        'border:1px solid #1a1a1a',
+        'font-family:Georgia,Palatino,serif',
+        'font-size:15px',
+        'line-height:1',
+        'white-space:nowrap',
+        'box-sizing:border-box',
+        'animation:calendarQuickAddIn .16s ease-out'
+    ].join(';');
+
+    const mark = document.createElement('span');
+    mark.textContent = notice && notice.ok ? '✓' : '×';
+    mark.style.cssText = 'all:initial;box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:16px;height:16px;border:1px solid #1a1a1a;color:#1a1a1a;font-family:Georgia,Palatino,serif;font-size:12px;line-height:1;';
+
+    const label = document.createElement('span');
+    label.textContent = (notice && notice.text) || (notice && notice.ok ? 'Added' : 'Not added');
+    label.style.cssText = 'all:initial;color:#1a1a1a;font-family:Georgia,Palatino,serif;font-size:15px;line-height:1;';
+
+    host.appendChild(mark);
+    host.appendChild(label);
+    (document.documentElement || document.body).appendChild(host);
+
+    host.style.left = Math.max(8, x + 14) + 'px';
+    host.style.top = Math.max(8, y - 40) + 'px';
+    const placed = host.getBoundingClientRect();
+    if (placed.right > window.innerWidth - 8) {
+        host.style.left = Math.max(8, window.innerWidth - placed.width - 8) + 'px';
+    }
+    if (placed.bottom > window.innerHeight - 8) {
+        host.style.top = Math.max(8, window.innerHeight - placed.height - 8) + 'px';
+    }
+    setTimeout(() => host.remove(), 2600);
+}
+
+function promoteDateOnly(parsed) {
+    if (!parsed || parsed.allDay || parsed.fullDateTime || parsed.time || !parsed.date) {
+        return parsed;
+    }
+    const parsedDate = parseDate(parsed.date);
+    if (!parsedDate || isNaN(parsedDate.getTime())) return parsed;
+    const local = new Date(parsedDate.getFullYear(), parsedDate.getMonth(), parsedDate.getDate());
+    parsed.allDay = true;
+    parsed.fullDateTime = local;
+    parsed.date = formatLocalDate(local);
+    return parsed;
+}
+
+function formatLocalDate(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
 
 // Parse text to extract date, time, and title
 function parseEventText(text) {
@@ -254,14 +355,9 @@ function parseEventText(text) {
 
 // Parse date string to Date object
 function parseDate(dateStr) {
-    // Handle relative dates
-    const lower = dateStr.toLowerCase();
-    if (lower === 'today') {
-        return new Date();
-    } else if (lower === 'tomorrow') {
-        const date = new Date();
-        date.setDate(date.getDate() + 1);
-        return date;
+    const relative = resolveRelativeDate(dateStr);
+    if (relative) {
+        return new Date(relative.year, relative.month, relative.day);
     }
     
     // Try parsing standard date formats
@@ -358,12 +454,10 @@ async function createCalendarEvent(eventData, accessToken) {
     
     // Handle all-day events vs timed events
     if (eventData.allDay) {
-        // All-day events use date format (YYYY-MM-DD)
-        event.start = { date: startDateTime.toISOString().split('T')[0] };
-        // For all-day events, end date should be the day after (exclusive)
-        const endDate = new Date(endDateTime);
-        endDate.setDate(endDate.getDate() + 1);
-        event.end = { date: endDate.toISOString().split('T')[0] };
+        const exclusiveEnd = new Date(startDateTime.getFullYear(), startDateTime.getMonth(), startDateTime.getDate());
+        exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
+        event.start = { date: formatLocalDate(startDateTime) };
+        event.end = { date: formatLocalDate(exclusiveEnd) };
     } else {
         // Timed events use dateTime format
         event.start = {
