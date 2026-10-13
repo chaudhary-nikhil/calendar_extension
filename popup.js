@@ -9,6 +9,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const dropZone = document.getElementById('dropZone');
     const icsFileInput = document.getElementById('icsFileInput');
     
+    function localDateValue(date) {
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${date.getFullYear()}-${month}-${day}`;
+    }
+
     // Load stored event data from content script or context menu
     chrome.storage.local.get(['eventData'], (result) => {
         if (result.eventData) {
@@ -17,10 +23,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (result.eventData.fullDateTime) {
                 const date = new Date(result.eventData.fullDateTime);
                 if (!isNaN(date.getTime())) {
-                    dateInput.value = date.toISOString().split('T')[0];
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    timeInput.value = `${hours}:${minutes}`;
+                    dateInput.value = localDateValue(date);
+                    if (result.eventData.allDay) {
+                        timeInput.value = '';
+                    } else {
+                        const hours = String(date.getHours()).padStart(2, '0');
+                        const minutes = String(date.getMinutes()).padStart(2, '0');
+                        timeInput.value = `${hours}:${minutes}`;
+                    }
                 } else {
                     setDefaultDateTime();
                 }
@@ -38,7 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function setDefaultDateTime() {
         // Set default to today and current time + 1 hour
         const now = new Date();
-        dateInput.value = now.toISOString().split('T')[0];
+        dateInput.value = localDateValue(now);
         const futureTime = new Date(now.getTime() + 60 * 60 * 1000);
         const hours = String(futureTime.getHours()).padStart(2, '0');
         const minutes = String(futureTime.getMinutes()).padStart(2, '0');
@@ -60,8 +70,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             showStatus('Please select a date', 'error');
             return;
         }
-        
-        const dateTime = new Date(`${dateStr}T${timeStr}`);
+
+        const allDay = !timeStr;
+        const dateTime = new Date(allDay ? `${dateStr}T00:00` : `${dateStr}T${timeStr}`);
         if (isNaN(dateTime.getTime())) {
             showStatus('Invalid date or time', 'error');
             return;
@@ -79,7 +90,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             const eventData = {
                 title: title,
-                fullDateTime: dateTime
+                fullDateTime: dateTime,
+                allDay: allDay
             };
             
             // Create event
@@ -95,7 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     titleInput.value = '';
                     // Reset to default date/time
                     const now = new Date();
-                    dateInput.value = now.toISOString().split('T')[0];
+                    dateInput.value = localDateValue(now);
                     const futureTime = new Date(now.getTime() + 60 * 60 * 1000);
                     const hours = String(futureTime.getHours()).padStart(2, '0');
                     const minutes = String(futureTime.getMinutes()).padStart(2, '0');

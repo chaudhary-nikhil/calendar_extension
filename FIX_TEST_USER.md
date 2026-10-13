@@ -41,3 +41,4 @@ This happens because your OAuth consent screen is in **Testing** mode, which mea
 3. Try signing out in the extension popup and signing back in
 4. Clear your browser cache or try incognito mode
 
+

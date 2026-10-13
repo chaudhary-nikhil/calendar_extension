@@ -33,3 +33,4 @@ After making changes to `manifest.json` or any extension files:
 3. Wait a minute or two - Google's changes sometimes take a moment to propagate
 4. Check the service worker console for more detailed error messages
 
+

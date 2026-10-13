@@ -111,3 +111,4 @@ Replace the `client_id` in `manifest.json` with your new Client ID:
 - You'll need to update the OAuth client configuration with the new Extension ID
 - Or use a fixed Extension ID by publishing to Chrome Web Store (even unlisted)
 
+
